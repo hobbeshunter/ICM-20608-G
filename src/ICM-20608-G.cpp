@@ -43,13 +43,14 @@ int8_t ICM_20608_G::init()
     pinMode(MOSI, OUTPUT);
     pinMode(SCK, OUTPUT);
 
+    // try awaking the device 5 times
     uint8_t i;
     for (i = 1; i <= 5; i++)
     {
         writeRegister(PWR_MGMT_1, RESET);     // reset whole device
         delay(100);                           // 100ms
         writeRegister(USER_CTRL, I2C_IF_DIS); // disable I2C mode as recommended in datasheet
-        writeRegister(PWR_MGMT_1, CLK_ZGYRO); // waik up
+        writeRegister(PWR_MGMT_1, CLK_ZGYRO); // wake up
         delay(5);
 
         // woke up or still asleep?
@@ -107,8 +108,6 @@ int8_t ICM_20608_G::init()
 void ICM_20608_G::calibrate()
 {
     const uint16_t number_messurements = 500;
-    // int16_t gx[number_messurements], gy[number_messurements], gz[number_messurements];
-    // int16_t ax[number_messurements], ay[number_messurements], az[number_messurements];
 
     int16_t gx, gy, gz;
     int16_t ax, ay, az;
@@ -137,7 +136,7 @@ void ICM_20608_G::calibrate()
     offset_gz = -sum_gz / number_messurements;
     offset_ax = -sum_ax / number_messurements;
     offset_ay = -sum_ay / number_messurements;
-    offset_az = -1 / accel_lsb_to_g - sum_az / number_messurements;
+    offset_az = 1 / accel_lsb_to_g - sum_az / number_messurements;
 }
 
 void ICM_20608_G::writeRegister(uint8_t reg, uint8_t val)
@@ -190,8 +189,8 @@ void ICM_20608_G::readGyro(float &x, float &y, float &z) const
     readGyroRaw(xi, yi, zi);
 
     x = -(float)(xi + offset_gx) * gyro_lsb_to_degs;
-    y = (float)(yi + offset_gy) * gyro_lsb_to_degs;
-    z = -(float)(zi + offset_gz) * gyro_lsb_to_degs;
+    y = -(float)(yi + offset_gy) * gyro_lsb_to_degs;
+    z = (float)(zi + offset_gz) * gyro_lsb_to_degs;
 }
 
 void ICM_20608_G::readAccelRaw(int16_t &x, int16_t &y, int16_t &z) const
@@ -218,6 +217,6 @@ void ICM_20608_G::readAccel(float &x, float &y, float &z) const
     readAccelRaw(xi, yi, zi);
 
     x = (float)(xi + offset_ax) * accel_lsb_to_g;
-    y = -(float)(yi + offset_ay) * accel_lsb_to_g;
-    z = (float)(zi + offset_az) * accel_lsb_to_g;
+    y = (float)(yi + offset_ay) * accel_lsb_to_g;
+    z = -(float)(zi + offset_az) * accel_lsb_to_g;
 }
